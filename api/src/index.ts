@@ -1,7 +1,22 @@
 import { ApolloServer, gql, IResolvers } from 'apollo-server'
+import Fuse from 'fuse.js'
 import sortBy from 'lodash/sortBy'
 import find from 'lodash/find'
 import pokemon from './pokemon.json'
+
+const pokemonValues: Pokemon[] = Object.values(pokemon)
+
+function getPokemonByWeakness(weakness: string, pokemonValues: Pokemon[]) {
+  return pokemonValues.filter(p => {
+    return p.weaknesses.includes(weakness)
+  })
+}
+
+function getPokemonByType(type: string, pokemonValues: Pokemon[]) {
+  return pokemonValues.filter(p => {
+    return p.types.includes(type)
+  })
+}
 
 interface Pokemon {
   id: string
@@ -37,7 +52,13 @@ const typeDefs = gql`
   }
 
   type Query {
-    pokemonMany(skip: Int, limit: Int): [Pokemon!]!
+    pokemonMany(
+      skip: Int
+      limit: Int
+      types: [String]
+      weaknesses: [String]
+    ): [Pokemon!]!
+    pokemonSearch(name: String!): [Pokemon!]!
     pokemonOne(id: ID!): Pokemon
   }
 `
@@ -62,13 +83,53 @@ const resolvers: IResolvers<any, any> = {
   Query: {
     pokemonMany(
       _,
-      { skip = 0, limit = 999 }: { skip?: number; limit?: number }
+      {
+        skip = 0,
+        limit = 999,
+        types = [],
+        weaknesses = [],
+      }: {
+        skip?: number
+        limit?: number
+        types?: string[]
+        weaknesses?: string[]
+      }
     ): Pokemon[] {
-      return sortBy(pokemon, poke => parseInt(poke.id, 10)).slice(
+      let pokemonResults = pokemonValues
+
+      weaknesses.forEach(weakness => {
+        pokemonResults = getPokemonByWeakness(weakness, pokemonResults)
+      })
+
+      types.forEach(type => {
+        pokemonResults = getPokemonByType(type, pokemonResults)
+      })
+
+      return sortBy(pokemonResults, poke => parseInt(poke.id, 10)).slice(
         skip,
         limit + skip
       )
     },
+
+    pokemonSearch(_, { name = '' }: { name?: string }): Pokemon[] {
+      if (!name) {
+        return sortBy(pokemon, poke => parseInt(poke.id, 10)).slice(0, 999)
+      }
+
+      const options = {
+        isCaseSensitive: false,
+        includeScore: true,
+        threshold: 0.6,
+        keys: ['name'],
+      }
+
+      const fuse = new Fuse<Pokemon>(pokemonValues, options)
+
+      const fuseResult = fuse.search(name)
+
+      return fuseResult.map(d => d.item)
+    },
+
     pokemonOne(_, { id }: { id: string }): Pokemon {
       return (pokemon as Record<string, Pokemon>)[id]
     },

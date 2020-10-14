@@ -16,6 +16,11 @@ const Container = styled(NesContainer)`
   }
 `
 
+type ReturnPathType = {
+  returnPath: string
+  filters: any
+}
+
 const POKEMON_ONE = gql`
   query($id: ID!) {
     pokemonOne(id: $id) {
@@ -43,8 +48,22 @@ const POKEMON_ONE = gql`
 `
 
 const ID: React.FC<
-  RouteComponentProps & { id?: string; clickLink: Function }
-> = ({ id, clickLink }) => {
+  RouteComponentProps & {
+    id?: string
+    clickLink: Function
+  }
+> = ({ id, clickLink, location }) => {
+  let returnPath = ''
+  let filters: any
+
+  if (location && location.state) {
+    const state = location.state as ReturnPathType
+    if (state.returnPath) {
+      returnPath = state.returnPath
+      filters = state.filters
+    }
+  }
+
   const { loading, error, data } = useQuery(POKEMON_ONE, { variables: { id } })
   const pokemon:
     | {
@@ -65,6 +84,7 @@ const ID: React.FC<
   if (loading) {
     return <p>Loading...</p>
   }
+
   if (error || !pokemon) {
     return <p>Error!</p>
   }
@@ -73,7 +93,8 @@ const ID: React.FC<
     <>
       <Link
         onMouseDown={clickLink as any}
-        to="/pokemon"
+        to={`/pokemon${returnPath}`}
+        state={{ filters }}
         style={{ color: 'black', marginLeft: '1rem', marginTop: '1rem' }}
       >
         <h2>{'< Back to List'}</h2>
@@ -82,22 +103,28 @@ const ID: React.FC<
         <h1>
           {pokemon.name} - {pokemon.num}
         </h1>
-        <img style={{ marginBottom: '2rem' }} src={pokemon.img} />
+        <img
+          style={{ marginBottom: '2rem' }}
+          src={pokemon.img}
+          alt={pokemon.name}
+        />
         <Table bordered centered>
-          <tr>
-            <th>Types</th>
-            <th>Weaknesses</th>
-            <th>Height</th>
-            <th>Weight</th>
-            <th>Egg</th>
-          </tr>
-          <tr>
-            <td>{pokemon.types.join(', ')}</td>
-            <td>{pokemon.weaknesses.join(', ')}</td>
-            <td>{pokemon.height}</td>
-            <td>{pokemon.weight}</td>
-            <td>{pokemon.egg}</td>
-          </tr>
+          <tbody>
+            <tr>
+              <th>Types</th>
+              <th>Weaknesses</th>
+              <th>Height</th>
+              <th>Weight</th>
+              <th>Egg</th>
+            </tr>
+            <tr>
+              <td>{pokemon.types.join(', ')}</td>
+              <td>{pokemon.weaknesses.join(', ')}</td>
+              <td>{pokemon.height}</td>
+              <td>{pokemon.weight}</td>
+              <td>{pokemon.egg}</td>
+            </tr>
+          </tbody>
         </Table>
         {pokemon.prevEvolutions.length > 0 && (
           <h2 style={{ marginTop: '2rem' }}>Previous Evolutions</h2>
@@ -112,8 +139,10 @@ const ID: React.FC<
               marginRight: '1rem',
             }}
             to={`/pokemon/${prevEvolution.id}`}
+            state={{ returnPath }}
+            key={prevEvolution.id}
           >
-            <img src={prevEvolution.img} />
+            <img src={prevEvolution.img} alt={prevEvolution.name} />
             <h2>{prevEvolution.name}</h2>
           </Link>
         ))}
@@ -130,8 +159,10 @@ const ID: React.FC<
               marginRight: '1rem',
             }}
             to={`/pokemon/${nextEvolution.id}`}
+            state={{ returnPath }}
+            key={nextEvolution.id}
           >
-            <img src={nextEvolution.img} />
+            <img src={nextEvolution.img} alt={nextEvolution.name} />
             <h2>{nextEvolution.name}</h2>
           </Link>
         ))}

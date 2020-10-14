@@ -2,6 +2,8 @@ import React from 'react'
 import styled from 'styled-components'
 import { navigate } from '@reach/router'
 import Sound from 'react-sound'
+import FilterInputs from './FilterInputs'
+import PokemonSearchInput from './PokemonSearchInput'
 
 const Container = styled.div`
   flex: 1;
@@ -35,6 +37,16 @@ const RedButtonContainer = styled.div`
   align-items: center;
   color: #434c4e;
   width: 9rem;
+`
+
+const SearchContainer = styled.div`
+  position: absolute;
+  bottom: 1.5rem;
+  left: 30rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #434c4e;
 `
 
 const RedButton = styled.div<{ isOn?: boolean }>`
@@ -199,6 +211,7 @@ const Pokedex: React.FC<{ children: (clickLink: Function) => any }> = ({
               <Glare />
             </Dot>
           </Dots>
+
           <RedButtonContainer>
             <RedButton
               isOn={isOn}
@@ -207,12 +220,23 @@ const Pokedex: React.FC<{ children: (clickLink: Function) => any }> = ({
             />
             On/Off
           </RedButtonContainer>
+
+          <SearchContainer>
+            Pokemon Search:
+            <PokemonSearchInput />
+          </SearchContainer>
+
           <Grill>
             <GrillLine />
             <GrillLine />
             <GrillLine />
             <GrillLine />
           </Grill>
+
+          <div style={{ width: '400px' }}>
+            <FilterInputs />
+          </div>
+
           <Screen isOn={isOn}>
             <Content isOn={isOn}>{children(clickLink)}</Content>
             <Glare />

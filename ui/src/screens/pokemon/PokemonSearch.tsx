@@ -1,4 +1,5 @@
-import React from 'react'
+import React, { FC } from 'react'
+
 import styled from 'styled-components'
 import { RouteComponentProps, Link } from '@reach/router'
 import { useQuery, gql } from '@apollo/client'
@@ -33,14 +34,9 @@ const ListItem = styled.li`
   }
 `
 
-const POKEMON_MANY = gql`
-  query($skip: Int, $limit: Int, $types: [String], $weaknesses: [String]) {
-    pokemonMany(
-      skip: $skip
-      limit: $limit
-      types: $types
-      weaknesses: $weaknesses
-    ) {
+const POKEMON_SEARCH = gql`
+  query GetByName($name: String!) {
+    pokemonSearch(name: $name) {
       id
       name
       num
@@ -49,42 +45,27 @@ const POKEMON_MANY = gql`
   }
 `
 
-type FilterProps = {
-  filters: {
-    types: string[]
-    weaknesses: string[]
-  }
+type SearchTextType = {
+  searchText: string
 }
 
-const Pokemon: React.FC<
-  RouteComponentProps<FilterProps> & { clickLink: Function }
-> = ({ clickLink, location }) => {
-  let filter: FilterProps = {
-    filters: {
-      types: [],
-      weaknesses: [],
-    },
+const PokemonSearch: FC<
+  RouteComponentProps<SearchTextType> & {
+    searchText?: string
+    clickLink: Function
+  }
+> = ({ searchText, clickLink }) => {
+  if (!searchText) {
+    searchText = ''
   }
 
-  if (location && location.state) {
-    const state = location.state as FilterProps
-
-    if (state.filters) {
-      filter.filters.types = state.filters.types
-      filter.filters.weaknesses = state.filters.weaknesses
-    }
-  }
-
-  const { loading, error, data } = useQuery(POKEMON_MANY, {
-    variables: {
-      types: filter.filters.types,
-      weaknesses: filter.filters.weaknesses,
-    },
+  const { loading, error, data } = useQuery(POKEMON_SEARCH, {
+    variables: { name: searchText },
   })
 
   const pokemonList:
     | Array<{ id: string; name: string; img: string; num: string }>
-    | undefined = data?.pokemonMany
+    | undefined = data?.pokemonSearch
 
   if (loading) {
     return <p>Loading...</p>
@@ -100,8 +81,8 @@ const Pokemon: React.FC<
         {pokemonList.length > 0 &&
           pokemonList.map(pokemon => (
             <Link
-              to={pokemon.id}
-              state={{ returnPath: '/', filters: filter.filters }}
+              to={`/pokemon/${pokemon.id}`}
+              state={{ returnPath: `/search/${searchText}` }}
               key={pokemon.id}
               onMouseDown={clickLink as any}
             >
@@ -118,4 +99,4 @@ const Pokemon: React.FC<
   )
 }
 
-export default Pokemon
+export default PokemonSearch
